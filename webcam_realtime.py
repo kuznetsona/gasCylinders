@@ -12,14 +12,18 @@ while True:
 
     text = pytesseract.image_to_string(frame, lang='rus')
 
-    str = "ЧИСТЫЙ\nКОД\n\nСОЗДАНИЕ, АНАЛИЗ\nИ РЕФАКТОРИНГ"
+    str_target = "ЧИСТЫЙ\nКОД\n\nСОЗДАНИЕ, АНАЛИЗ\nИ РЕФАКТОРИНГ"
 
-    matches = sum(1 for a, b in zip(str, text) if a == b)
-    percentage = (matches / len(str)) * 100
+    matches = sum(1 for a, b in zip(str_target, text) if a == b)
+    percentage = (matches / len(str_target)) * 100
 
-    print("Распознанный текст:", text)
-    print("Процент совпадений:", percentage)
-    print("--------------------------------")
+    #print("Распознанный текст:", text)
+    #print("Процент совпадений:", percentage)
+    #print("--------------------------------")
+
+    cv2.putText(frame, f"Accuracy: {percentage:.2f}%", (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
     cv2.imshow('frame', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):  # 'q', чтобы выйти из цикла

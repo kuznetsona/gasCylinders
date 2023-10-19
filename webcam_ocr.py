@@ -4,6 +4,7 @@ import pytesseract
 from PIL import Image, ImageEnhance
 import numpy as np
 
+
 class ImagePreprocessor:
     def __init__(self, image_path, output_path):
         self.image_path = image_path
@@ -54,6 +55,7 @@ class ImagePreprocessor:
         cv2.imwrite(self.output_path, img)
         return img
 
+
 class TesseractOCR:
     def __init__(self, config):
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -80,6 +82,7 @@ def crop_to_square(image):
     y = (height - size) // 2
     return image[y:y+size, x:x+size]
 
+
 def merge_cropped_images(left_img, right_img):
     cropped_left = crop_to_square(left_img)
     cropped_right = crop_to_square(right_img)
@@ -89,7 +92,7 @@ def merge_cropped_images(left_img, right_img):
 
 if __name__ == "__main__":
     ret_left, frame_left = capture_image(0)
-    ret_right, frame_right = capture_image(0)
+    ret_right, frame_right = capture_image(1)
 
     if not ret_left or not ret_right:
         print("Couldn't read frame from one or both webcams.")
@@ -104,15 +107,17 @@ if __name__ == "__main__":
     cv2.imwrite(image_path, merged_image)
     print(f"Merged image saved as {image_path}")
 
-    #output_filename = 'preprocessed_' + image_filename
-    #output_path = os.path.join(project_directory, output_filename)
-    #preprocessor = ImagePreprocessor(image_path, output_path)
-    #preprocessor.preprocess()
 
-    #config = '--oem 1 --psm 6 -c tessedit_create_hocr=1 -c tessedit_write_images=True'
-    #ocr = TesseractOCR(config)
-    #text = ocr.image_to_string(output_path)
-    #print(text)
+    output_filename = 'preprocessed_' + image_filename
+    output_path = os.path.join(project_directory, output_filename)
+    preprocessor = ImagePreprocessor(image_path, output_path)
+    preprocessor.preprocess()
+
+
+    config = '--oem 1 --psm 6 -c tessedit_create_hocr=1 -c tessedit_write_images=True'
+    ocr = TesseractOCR(config)
+    text = ocr.image_to_string(output_path)
+    print(text)
 
     #data = pytesseract.image_to_data(output_path, config=config)
     #data = ocr.image_to_data(output_path)

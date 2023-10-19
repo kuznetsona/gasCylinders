@@ -1,30 +1,35 @@
 import cv2
 import pytesseract
-from PIL import Image, ImageDraw, ImageFont
-import numpy as np
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 cap1 = cv2.VideoCapture(0)
 cap2 = cv2.VideoCapture(1)
 
-font_path = "path_to_your_font.ttf"
-font_size = 30
-font = ImageFont.truetype(font_path, font_size)
 
-str_target = "ЧИСТЫЙ\nКОД\n\nСОЗДАНИЕ, АНАЛИЗ\nИ РЕФАКТОРИНГ"
+def preprocess_frame(frame):
+    frame = cv2.convertScaleAbs(frame, alpha=1, beta=10)
+    frame = cv2.GaussianBlur(frame, (5, 5), 0)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    return binary
 
 
-def process_frame(frame, cam_name):
-    text = pytesseract.image_to_string(frame, lang='rus')
+def process_frame(frame, str_target):
+    preprocessed_frame = preprocess_frame(frame)
+
+    #text = pytesseract.image_to_string(preprocessed_frame, lang='rus')
+    text = pytesseract.image_to_string(frame)
     matches = sum(1 for a, b in zip(str_target, text) if a == b)
     percentage = (matches / len(str_target)) * 100
+    text_to_display = f"Accuracy: {percentage:.2f}%\n{text}"
 
-    frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(frame_pil)
-    draw.text((10, 10), f"{cam_name} Accuracy: {percentage:.2f}%", font=font, fill=(0, 255, 0))
+    cv2.putText(frame, text_to_display, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+    #cv2.putText(preprocessed_frame, text_to_display, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+    return frame, preprocessed_frame, text_to_display
 
-    return cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR), percentage
 
+
+str_target = "Святой источник"
 
 while True:
     ret1, frame1 = cap1.read()
@@ -33,16 +38,13 @@ while True:
     if not ret1 or not ret2:
         break
 
-    frame1, percentage1 = process_frame(frame1, "Camera 1")
-    frame2, percentage2 = process_frame(frame2, "Camera 2")
+    processed_left, preprocessed_left, text_to_display1 = process_frame(frame1, str_target)
+    processed_right, preprocessed_right, text_to_display2 = process_frame(frame2, str_target)
 
-    #print(f"Camera 1 Percentage: {percentage1:.2f}%")
-    #print(f"Camera 2 Percentage: {percentage2:.2f}%")
-    #print(f"Overall Percentage: {(percentage1 + percentage2) / 2:.2f}%")
-    #print("--------------------------------")
-
-    cv2.imshow('Camera 1', frame1)
-    cv2.imshow('Camera 2', frame2)
+    #cv2.imshow(f'Camera left - Processed', processed_left)
+    #cv2.imshow('Camera left - Preprocessed', preprocessed_left)
+    cv2.imshow(f'Camera right - Processed', processed_right)
+    cv2.imshow('Camera right - Preprocessed', preprocessed_right)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

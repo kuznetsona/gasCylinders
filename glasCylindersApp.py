@@ -44,15 +44,12 @@ class MainWindow(QMainWindow):
             binary = self.apply_binary_threshold(gray, self.slider_binary.value())
             noise_reduced = self.reduce_noise(binary, self.slider_noise.value())
 
-            # Распознавание текста с помощью pytesseract
             recognized_text = pytesseract.image_to_string(noise_reduced, lang='rus')
 
-            # Вычисление точности
-            expected_text = "Ваш ожидаемый текст"  # Замените на ваш ожидаемый текст
+            expected_text = "СВЯТОЙ ИСТОЧНИК"
             accuracy = self.calculate_accuracy(recognized_text, expected_text)
             accuracy_percentage = round(accuracy * 100, 2)
 
-            # Вывод распознанного текста и точности в виджеты QLabel
             self.text_result.setText(recognized_text)
             self.text_accuracy.setText(f"Accuracy: {accuracy_percentage}%")
 

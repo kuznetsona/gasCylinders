@@ -8,6 +8,7 @@ from PyQt5.QtCore import QTimer, Qt
 import pytesseract
 
 
+# Добавить вывод с двух камер и сшивание двух кадров, сделать рефакторинг, И нормальную точность
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -72,6 +73,9 @@ class MainWindow(QMainWindow):
         alpha = contrast_value / 100.0
         beta = 0
         return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+
+
+
 
 
 

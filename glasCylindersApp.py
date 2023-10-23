@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         loadUi("glasCylinders.ui", self)
 
         # Инициализация флага преобразований
-        self.apply_transformations = True
+        self.apply_transformations = False
 
         # Соединение сигнала с слотом
         self.radioButton.toggled.connect(self.on_radioButton_toggled)
@@ -37,10 +37,11 @@ class MainWindow(QMainWindow):
 
     def on_radioButton_toggled(self, checked):
         """Обработка переключения радио-кнопки."""
-        self.apply_transformations = not checked  # Если кнопка активирована, отключите преобразования
+        self.apply_transformations = checked  # Если кнопка активирована, отключите преобразования
 
     def video_feed(self):
-        self.capture = cv2.VideoCapture(0)
+        self.capture1 = cv2.VideoCapture(0)  # первая камера
+        #self.capture2 = cv2.VideoCapture(0)  # вторая камера
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -50,12 +51,19 @@ class MainWindow(QMainWindow):
         return matched_chars / max(len(recognized_text), len(expected_text))
 
     def update_frame(self):
-        ret, image = self.capture.read()
-        if ret:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        ret1, image1 = self.capture1.read()
+        #ret2, image2 = self.capture2.read()
+
+        if ret1:
+        #if ret1 and ret2:
+            # Сшиваем два изображения вместе по горизонтали
+            #combined_image = np.hstack((image1, image2))
+            combined_image = image1
+
+            gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
 
             if self.apply_transformations:
-                image = self.adjust_contrast(image, self.slider_contrast.value())
+                combined_image = self.adjust_contrast(combined_image, self.slider_contrast.value())
                 binary = self.apply_binary_threshold(gray, self.slider_binary.value())
                 noise_reduced = self.reduce_noise(binary, self.slider_noise.value())
             else:
@@ -77,33 +85,6 @@ class MainWindow(QMainWindow):
             pixmap = QPixmap.fromImage(q_image)
             pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
             self.videoContainer.setPixmap(pixmap)
-
-    """
-    def update_frame(self):
-        ret, image = self.capture.read()
-        if ret:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-            image = self.adjust_contrast(image, self.slider_contrast.value())
-            binary = self.apply_binary_threshold(gray, self.slider_binary.value())
-            noise_reduced = self.reduce_noise(binary, self.slider_noise.value())
-
-            recognized_text = pytesseract.image_to_string(noise_reduced, lang='rus')
-
-            expected_text = "СВЯТОЙ ИСТОЧНИК"
-            accuracy = self.calculate_accuracy(recognized_text, expected_text)
-            accuracy_percentage = round(accuracy * 100, 2)
-
-            self.text_result.setText(recognized_text)
-            self.text_accuracy.setText(f"Accuracy: {accuracy_percentage}%")
-
-            height, width = noise_reduced.shape
-            bytes_per_line = width
-            q_image = QImage(noise_reduced.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
-            pixmap = QPixmap.fromImage(q_image)
-            pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
-            self.videoContainer.setPixmap(pixmap) 
-            """
 
     def apply_binary_threshold(self, gray_image, threshold_value):
         new_threshold_value = int((threshold_value / 100) * 255)

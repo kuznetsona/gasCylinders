@@ -19,32 +19,35 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         loadUi("glasCylinders.ui", self)
+        self.initialize_ui()
+        self.video_feed()
 
-        # Инициализация флага преобразований
+    def initialize_ui(self):
         self.apply_transformations = False
-
-        # Соединение сигнала с слотом
         self.radioButton.toggled.connect(self.on_radioButton_toggled)
-
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        self.initialize_sliders()
 
+    def initialize_sliders(self):
         self.slider_contrast.setValue(50)
         self.slider_binary.setValue(50)
         self.slider_noise.setValue(0)
-
-        self.video_feed()
-
+        self.slider_dilation.setValue(0)
+        self.slider_closing.setValue(0)
+        self.slider_opening.setValue(0)
 
     def on_radioButton_toggled(self, checked):
-        """Обработка переключения радио-кнопки."""
-        self.apply_transformations = checked  # Если кнопка активирована, отключите преобразования
+        self.apply_transformations = checked
 
     def video_feed(self):
-        self.capture1 = cv2.VideoCapture(0)  # первая камера
-        #self.capture2 = cv2.VideoCapture(0)  # вторая камера
+        self.capture1 = cv2.VideoCapture(0)
+        # self.capture2 = cv2.VideoCapture(1)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
+
+    def stitch_images(self, img1, img2):
+        return np.hstack((img1, img2))
 
     def calculate_accuracy(self, recognized_text, expected_text):
         matched_chars = sum(1 for a, b in zip(recognized_text, expected_text) if a == b)
@@ -52,39 +55,43 @@ class MainWindow(QMainWindow):
 
     def update_frame(self):
         ret1, image1 = self.capture1.read()
-        #ret2, image2 = self.capture2.read()
+        # ret2, image2 = self.capture2.read()
 
         if ret1:
-        #if ret1 and ret2:
+            # if ret1 and ret2:
             # Сшиваем два изображения вместе по горизонтали
-            #combined_image = np.hstack((image1, image2))
+            # combined_image = np.hstack((image1, image2))
             combined_image = image1
 
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
-
             if self.apply_transformations:
-                combined_image = self.adjust_contrast(combined_image, self.slider_contrast.value())
-                binary = self.apply_binary_threshold(gray, self.slider_binary.value())
-                noise_reduced = self.reduce_noise(binary, self.slider_noise.value())
-            else:
-                noise_reduced = gray
+                gray = self.apply_transforms(gray)
 
-            # Эта часть не зависит от условия и должна выполняться после преобразований
-            recognized_text = pytesseract.image_to_string(noise_reduced, lang='rus')
+            recognized_text = pytesseract.image_to_string(gray)
+            self.display_results(gray, recognized_text)
 
-            expected_text = "СВЯТОЙ\nИСТОЧНИК"
-            accuracy = self.calculate_accuracy(recognized_text, expected_text)
-            accuracy_percentage = round(accuracy * 100, 2)
+    def apply_transforms(self, img):
+        img = self.adjust_contrast(img, self.slider_contrast.value())
+        img = self.apply_binary_threshold(img, self.slider_binary.value())
+        img = self.apply_dilation(img, self.slider_dilation.value())
+        img = self.apply_closing(img, self.slider_closing.value())
+        img = self.apply_opening(img, self.slider_opening.value())
+        img = self.reduce_noise(img, self.slider_noise.value())
+        return img
 
-            self.text_result.setText(recognized_text)
-            self.text_accuracy.setText(f"Accuracy: {accuracy_percentage}%")
+    def display_results(self, img, recognized_text):
+        expected_text = "СВЯТОЙ\nИСТОЧНИК"
+        accuracy = self.calculate_accuracy(recognized_text, expected_text)
+        accuracy_percentage = round(accuracy * 100, 2)
+        self.text_result.setText(recognized_text)
+        self.text_accuracy.setText(f"Accuracy: {accuracy_percentage}%")
+        height, width = img.shape
+        bytes_per_line = width
+        q_image = QImage(img.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+        pixmap = QPixmap.fromImage(q_image)
+        pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
+        self.videoContainer.setPixmap(pixmap)
 
-            height, width = noise_reduced.shape
-            bytes_per_line = width
-            q_image = QImage(noise_reduced.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
-            pixmap = QPixmap.fromImage(q_image)
-            pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
-            self.videoContainer.setPixmap(pixmap)
 
     def apply_binary_threshold(self, gray_image, threshold_value):
         new_threshold_value = int((threshold_value / 100) * 255)
@@ -97,11 +104,28 @@ class MainWindow(QMainWindow):
         return cv2.GaussianBlur(gray_image, (adjusted_noise_value | 1, adjusted_noise_value | 1), 0)
 
     def adjust_contrast(self, image, contrast_value):
-        # Умножьте на 3 для более сильного изменения контраста
         alpha = (contrast_value * 3) / 100.0
         beta = 0
         return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
+    def apply_dilation(self, image, dilation_value):
+        adjusted_dilation_value = dilation_value // 100
+        kernel = np.ones((adjusted_dilation_value, adjusted_dilation_value), np.uint8)
+        return cv2.dilate(image, kernel, iterations=1)
+
+    def apply_closing(self, image, closing_value):
+        adjusted_closing_value = closing_value // 100
+        kernel = np.ones((adjusted_closing_value, adjusted_closing_value), np.uint8)
+        return cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+
+    def apply_opening(self, image, opening_value):
+        adjusted_opening_value = opening_value // 100
+        kernel = np.ones((adjusted_opening_value, adjusted_opening_value), np.uint8)
+        return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
+    def closeEvent(self, event):
+        self.capture1.release()
+        event.accept()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

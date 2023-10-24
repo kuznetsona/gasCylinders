@@ -8,11 +8,8 @@ from PyQt5.QtCore import QTimer, Qt
 import pytesseract
 
 
-# Добавить вывод с двух камер
-# и сшивание двух кадров,
-# сделать рефакторинг,
-# И нормальную точность,
-# изменить настройки
+# нормальную точность,
+# изменить разметку, сделать чтобы окно не прыгало
 
 class MainWindow(QMainWindow):
 
@@ -26,6 +23,8 @@ class MainWindow(QMainWindow):
         self.apply_transformations = False
         self.radioButton.toggled.connect(self.on_radioButton_toggled)
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        config = '--oem 1 --psm 6'
+
         self.initialize_sliders()
 
     def initialize_sliders(self):
@@ -40,8 +39,8 @@ class MainWindow(QMainWindow):
         self.apply_transformations = checked
 
     def video_feed(self):
-        self.capture1 = cv2.VideoCapture(1)
-        self.capture2 = cv2.VideoCapture(2)
+        self.capture1 = cv2.VideoCapture(2)
+        #self.capture2 = cv2.VideoCapture(2)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -56,24 +55,26 @@ class MainWindow(QMainWindow):
     def update_frame(self):
         ret1, image1 = self.capture1.read()
         #ret2, image2 = self.capture2.read()
-
         if ret1:
         #if ret1 and ret2:
 
             #combined_image = np.hstack((image1, image2))
             combined_image = image1
+            #combined_image = cv2.imread('photo_1.jpg')
 
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
+
             if self.apply_transformations:
                 gray = self.apply_transforms(gray)
 
-            recognized_text = pytesseract.image_to_string(gray)
+            recognized_text = pytesseract.image_to_string(gray, config='--oem 1 --psm 11')
+
             self.display_results(gray, recognized_text)
 
     def apply_transforms(self, img):
         img = self.adjust_contrast(img, self.slider_contrast.value())
         img = self.apply_binary_threshold(img, self.slider_binary.value())
-        img = cv2.bitwise_not(img)
+        #img = cv2.bitwise_not(img)
         img = self.apply_dilation(img, self.slider_dilation.value())
         img = self.apply_closing(img, self.slider_closing.value())
         img = self.apply_opening(img, self.slider_opening.value())
@@ -88,9 +89,12 @@ class MainWindow(QMainWindow):
         self.text_accuracy.setText(f"Accuracy: {accuracy_percentage}%")
         height, width = img.shape
         bytes_per_line = width
+
         q_image = QImage(img.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+
         pixmap = QPixmap.fromImage(q_image)
         pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
+
         self.videoContainer.setPixmap(pixmap)
 
 

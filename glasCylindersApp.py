@@ -40,8 +40,8 @@ class MainWindow(QMainWindow):
         self.apply_transformations = checked
 
     def video_feed(self):
-        self.capture1 = cv2.VideoCapture(0)
-        # self.capture2 = cv2.VideoCapture(1)
+        self.capture1 = cv2.VideoCapture(1)
+        self.capture2 = cv2.VideoCapture(2)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -55,12 +55,12 @@ class MainWindow(QMainWindow):
 
     def update_frame(self):
         ret1, image1 = self.capture1.read()
-        # ret2, image2 = self.capture2.read()
+        #ret2, image2 = self.capture2.read()
 
         if ret1:
-            # if ret1 and ret2:
-            # Сшиваем два изображения вместе по горизонтали
-            # combined_image = np.hstack((image1, image2))
+        #if ret1 and ret2:
+
+            #combined_image = np.hstack((image1, image2))
             combined_image = image1
 
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
     def apply_transforms(self, img):
         img = self.adjust_contrast(img, self.slider_contrast.value())
         img = self.apply_binary_threshold(img, self.slider_binary.value())
+        img = cv2.bitwise_not(img)
         img = self.apply_dilation(img, self.slider_dilation.value())
         img = self.apply_closing(img, self.slider_closing.value())
         img = self.apply_opening(img, self.slider_opening.value())
@@ -99,8 +100,7 @@ class MainWindow(QMainWindow):
         return binary
 
     def reduce_noise(self, gray_image, noise_value):
-        # Разделите noise_value на 10 для более плавного изменения
-        adjusted_noise_value = max(1, int(noise_value / 10))
+        adjusted_noise_value = max(1, int(noise_value / 20))
         return cv2.GaussianBlur(gray_image, (adjusted_noise_value | 1, adjusted_noise_value | 1), 0)
 
     def adjust_contrast(self, image, contrast_value):
@@ -109,17 +109,17 @@ class MainWindow(QMainWindow):
         return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
     def apply_dilation(self, image, dilation_value):
-        adjusted_dilation_value = dilation_value // 100
+        adjusted_dilation_value = dilation_value // 10
         kernel = np.ones((adjusted_dilation_value, adjusted_dilation_value), np.uint8)
         return cv2.dilate(image, kernel, iterations=1)
 
     def apply_closing(self, image, closing_value):
-        adjusted_closing_value = closing_value // 100
+        adjusted_closing_value = closing_value // 10
         kernel = np.ones((adjusted_closing_value, adjusted_closing_value), np.uint8)
         return cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
     def apply_opening(self, image, opening_value):
-        adjusted_opening_value = opening_value // 100
+        adjusted_opening_value = opening_value // 10
         kernel = np.ones((adjusted_opening_value, adjusted_opening_value), np.uint8)
         return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
 

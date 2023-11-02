@@ -10,6 +10,7 @@ import pytesseract
 
 # нормальную точность,
 # изменить разметку, сделать чтобы окно не прыгало
+# доделать сшифку
 
 class MainWindow(QMainWindow):
 
@@ -39,8 +40,9 @@ class MainWindow(QMainWindow):
         self.apply_transformations = checked
 
     def video_feed(self):
-        self.capture1 = cv2.VideoCapture(2)
-        #self.capture2 = cv2.VideoCapture(2)
+        self.capture1 = cv2.VideoCapture(0)
+        #self.capture2 = cv2.VideoCapture(0)
+        #self.capture3 = cv2.VideoCapture(2)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -55,6 +57,7 @@ class MainWindow(QMainWindow):
     def update_frame(self):
         ret1, image1 = self.capture1.read()
         #ret2, image2 = self.capture2.read()
+        #ret3, image3 = self.capture3.read()
         if ret1:
         #if ret1 and ret2:
 
@@ -62,13 +65,26 @@ class MainWindow(QMainWindow):
             combined_image = image1
             #combined_image = cv2.imread('photo_1.jpg')
 
+            #сшифка, доделать
+            #stitch_images('path_to_img1.jpg', 'path_to_img2.jpg', 'output.jpg')
+
+            #stitcher = cv2.Stitcher_create()
+            #status, combined_im = stitcher.stitch([image1, image2])
+
+            #if status == cv2.Stitcher_OK:
+            #    combined_image = combined_im
+            #    print("Изображения успешно склеены!")
+            #else:
+            #    combined_image = np.hstack((image1, image2))
+            #    print("Ошибка при склейке изображений:", status)
+
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
 
             if self.apply_transformations:
                 gray = self.apply_transforms(gray)
 
             recognized_text = pytesseract.image_to_string(gray, config='--oem 1 --psm 11')
-
+            #recognized_text = ""
             self.display_results(gray, recognized_text)
 
     def apply_transforms(self, img):
@@ -96,6 +112,27 @@ class MainWindow(QMainWindow):
         pixmap = pixmap.scaled(self.videoContainer.width(), self.videoContainer.height(), Qt.KeepAspectRatio)
 
         self.videoContainer.setPixmap(pixmap)
+
+    #потом доделаю
+    def stitch_images(img1_path, img2_path, output_path):
+        img1 = cv2.imread(img1_path)
+        img2 = cv2.imread(img2_path)
+
+
+        stitcher = cv2.Stitcher_create()
+        # Склейка изображений
+        status, stitched_img = stitcher.stitch([img1, img2])
+
+        # Проверка статуса и сохранение результата
+        if status == cv2.Stitcher_OK:
+            cv2.imwrite(output_path, stitched_img)
+
+            print("Изображения успешно склеены!")
+        else:
+            print("Ошибка при склейке изображений:", status)
+
+
+
 
 
     def apply_binary_threshold(self, gray_image, threshold_value):

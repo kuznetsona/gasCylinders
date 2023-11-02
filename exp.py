@@ -81,12 +81,12 @@ if __name__ == "__main__":
 
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-    image_path = 'ballon1.jpg'
+    image_path = 'photo_1.jpg'
     output_path = 'preprocessed_' + image_path
 
-    preprocessor = ImagePreprocessor(image_path, output_path)
+    #preprocessor = ImagePreprocessor(image_path, output_path)
 
-    preprocessed_img = preprocessor.preprocess()
+    #preprocessed_img = preprocessor.preprocess()
 
     #ocr = TesseractOCR(config)
 

@@ -25,7 +25,6 @@ class MainWindow(QMainWindow):
         self.radioButton.toggled.connect(self.on_radioButton_toggled)
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         config = '--oem 1 --psm 6'
-
         self.initialize_sliders()
 
     def initialize_sliders(self):
@@ -40,9 +39,7 @@ class MainWindow(QMainWindow):
         self.apply_transformations = checked
 
     def video_feed(self):
-        self.capture1 = cv2.VideoCapture(0)
-        #self.capture2 = cv2.VideoCapture(0)
-        #self.capture3 = cv2.VideoCapture(2)
+        self.cameras = [cv2.VideoCapture(0)]
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -55,28 +52,10 @@ class MainWindow(QMainWindow):
         return matched_chars / max(len(recognized_text), len(expected_text))
 
     def update_frame(self):
-        ret1, image1 = self.capture1.read()
-        #ret2, image2 = self.capture2.read()
-        #ret3, image3 = self.capture3.read()
-        if ret1:
-        #if ret1 and ret2:
+        images = [camera.read()[1] for camera in self.cameras if camera.isOpened()]
 
-            #combined_image = np.hstack((image1, image2))
-            combined_image = image1
-            #combined_image = cv2.imread('photo_1.jpg')
-
-            #сшифка, доделать
-            #stitch_images('path_to_img1.jpg', 'path_to_img2.jpg', 'output.jpg')
-
-            #stitcher = cv2.Stitcher_create()
-            #status, combined_im = stitcher.stitch([image1, image2])
-
-            #if status == cv2.Stitcher_OK:
-            #    combined_image = combined_im
-            #    print("Изображения успешно склеены!")
-            #else:
-            #    combined_image = np.hstack((image1, image2))
-            #    print("Ошибка при склейке изображений:", status)
+        if images:
+            combined_image = np.hstack(images)
 
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
 
@@ -84,7 +63,6 @@ class MainWindow(QMainWindow):
                 gray = self.apply_transforms(gray)
 
             recognized_text = pytesseract.image_to_string(gray, config='--oem 1 --psm 11')
-            #recognized_text = ""
             self.display_results(gray, recognized_text)
 
     def apply_transforms(self, img):
@@ -165,7 +143,9 @@ class MainWindow(QMainWindow):
         return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
 
     def closeEvent(self, event):
-        self.capture1.release()
+        for camera in self.cameras:
+            if camera.isOpened():
+                camera.release()
         event.accept()
 
 if __name__ == '__main__':

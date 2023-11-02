@@ -27,6 +27,13 @@ class MainWindow(QMainWindow):
         config = '--oem 1 --psm 6'
         self.initialize_sliders()
 
+        self.selectingRegion = True
+        self.selectRegionButton.clicked.connect(self.toggle_region_selection)
+        self.ROI = None
+
+    def toggle_region_selection(self):
+        self.selectingRegion = True
+
     def initialize_sliders(self):
         self.slider_contrast.setValue(50)
         self.slider_binary.setValue(50)
@@ -39,6 +46,7 @@ class MainWindow(QMainWindow):
         self.apply_transformations = checked
 
     def video_feed(self):
+        # Список камер
         self.cameras = [cv2.VideoCapture(0)]
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
@@ -52,7 +60,30 @@ class MainWindow(QMainWindow):
         return matched_chars / max(len(recognized_text), len(expected_text))
 
     def update_frame(self):
-        images = [camera.read()[1] for camera in self.cameras if camera.isOpened()]
+        if self.selectingRegion:
+            self.ROIs = []
+            for camera in self.cameras:
+                if camera.isOpened():
+                    ret, frame = camera.read()
+                    if ret:
+                        r = cv2.selectROI(f"Select ROI for Camera {self.cameras.index(camera)}", frame, False)
+                        cv2.destroyWindow(f"Select ROI for Camera {self.cameras.index(camera)}")
+
+                        if r[2] != 0 and r[3] != 0:
+                            self.ROIs.append(r)
+                        else:
+                            self.ROIs.append(None)
+            self.selectingRegion = False
+
+        images = []
+        for i, camera in enumerate(self.cameras):
+            if camera.isOpened():
+                ret, frame = camera.read()
+                if ret:
+                    if self.ROIs and self.ROIs[i]:
+                        r = self.ROIs[i]
+                        frame = frame[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+                    images.append(frame)
 
         if images:
             combined_image = np.hstack(images)
@@ -105,7 +136,7 @@ class MainWindow(QMainWindow):
         if status == cv2.Stitcher_OK:
             cv2.imwrite(output_path, stitched_img)
 
-            print("Изображения успешно склеены!")
+            print("Изображения склеены")
         else:
             print("Ошибка при склейке изображений:", status)
 

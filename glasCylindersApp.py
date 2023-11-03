@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
     def video_feed(self):
         # Список камер
-        self.cameras = [cv2.VideoCapture(0)]
+        self.cameras = [cv2.VideoCapture(3), cv2.VideoCapture(2), cv2.VideoCapture(0)]
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
@@ -86,7 +86,17 @@ class MainWindow(QMainWindow):
                     images.append(frame)
 
         if images:
-            combined_image = np.hstack(images)
+            images_resized = []
+            min_height = min(image.shape[0] for image in images)
+            for image in images:
+                h, w, _ = image.shape
+                images_resized.append(image[:min_height, :])
+
+            combined_image = np.hstack(images_resized)
+            # combined_image = np.hstack(images)
+
+
+
 
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
 

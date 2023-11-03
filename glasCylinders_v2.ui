@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>569</width>
+    <width>510</width>
     <height>369</height>
    </rect>
   </property>
@@ -155,7 +155,7 @@ border-radius: 5px;</string>
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>200</width>
+                     <width>178</width>
                      <height>58</height>
                     </rect>
                    </property>
@@ -290,7 +290,7 @@ border-radius: 5px;</string>
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>200</width>
+                     <width>178</width>
                      <height>57</height>
                     </rect>
                    </property>
@@ -455,7 +455,7 @@ border-radius: 5px;</string>
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>199</width>
+                     <width>177</width>
                      <height>58</height>
                     </rect>
                    </property>
@@ -518,7 +518,7 @@ border-radius: 5px;</string>
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_19" stretch="2,0,0">
+            <layout class="QVBoxLayout" name="verticalLayout_19" stretch="2,1">
              <property name="spacing">
               <number>0</number>
              </property>
@@ -547,21 +547,52 @@ border-radius: 5px;</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="text_result_3">
-               <property name="text">
-                <string>TextLabel</string>
+              <widget class="QFrame" name="frame_13">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(22, 25, 29);
+border-radius: 5px;</string>
                </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QFrame" name="frame_7">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
                </property>
                <property name="frameShadow">
                 <enum>QFrame::Raised</enum>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_6"/>
+               <layout class="QHBoxLayout" name="horizontalLayout_6">
+                <item>
+                 <widget class="QScrollArea" name="scrollArea_3">
+                  <property name="styleSheet">
+                   <string notr="true">
+</string>
+                  </property>
+                  <property name="widgetResizable">
+                   <bool>true</bool>
+                  </property>
+                  <widget class="QWidget" name="scrollAreaWidgetContents_3">
+                   <property name="geometry">
+                    <rect>
+                     <x>0</x>
+                     <y>0</y>
+                     <width>165</width>
+                     <height>52</height>
+                    </rect>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_20">
+                    <item>
+                     <widget class="QLabel" name="label_3">
+                      <property name="styleSheet">
+                       <string notr="true"/>
+                      </property>
+                      <property name="text">
+                       <string>TextLabel</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+                </item>
+               </layout>
               </widget>
              </item>
             </layout>

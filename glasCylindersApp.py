@@ -95,9 +95,6 @@ class MainWindow(QMainWindow):
             combined_image = np.hstack(images_resized)
             # combined_image = np.hstack(images)
 
-
-
-
             gray = cv2.cvtColor(combined_image, cv2.COLOR_BGR2GRAY)
 
             if self.apply_transformations:

@@ -518,7 +518,7 @@ border-radius: 5px;</string>
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_19" stretch="2,0,0">
+            <layout class="QVBoxLayout" name="verticalLayout_19" stretch="2,0">
              <property name="spacing">
               <number>0</number>
              </property>
@@ -547,21 +547,32 @@ border-radius: 5px;</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="text_result_3">
-               <property name="text">
-                <string>TextLabel</string>
+              <widget class="QScrollArea" name="scrollArea">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(22, 25, 29);</string>
                </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QFrame" name="frame_7">
-               <property name="frameShape">
-                <enum>QFrame::StyledPanel</enum>
+               <property name="widgetResizable">
+                <bool>true</bool>
                </property>
-               <property name="frameShadow">
-                <enum>QFrame::Raised</enum>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_6"/>
+               <widget class="QWidget" name="scrollAreaWidgetContents">
+                <property name="geometry">
+                 <rect>
+                  <x>0</x>
+                  <y>0</y>
+                  <width>199</width>
+                  <height>52</height>
+                 </rect>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_20">
+                 <item>
+                  <widget class="QLabel" name="text_result_3">
+                   <property name="text">
+                    <string>TextLabel</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
               </widget>
              </item>
             </layout>

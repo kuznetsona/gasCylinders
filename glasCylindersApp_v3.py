@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
             if camera.isOpened():
                 ret, frame = camera.read()
                 if ret:
-                    r = cv2.selectROI(f"Select ROI for Camera {camera_index}", frame, fromCenter=False)
+                    r = cv2.selectROI(f"Select ROI for Camera {camera_index}", frame, False)
                     cv2.destroyWindow(f"Select ROI for Camera {camera_index}")
 
                     if r[2] and r[3]:

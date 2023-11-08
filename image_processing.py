@@ -35,3 +35,6 @@ def apply_opening(image, opening_value):
     adjusted_opening_value = opening_value // 10
     kernel = np.ones((adjusted_opening_value, adjusted_opening_value), np.uint8)
     return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
+
+

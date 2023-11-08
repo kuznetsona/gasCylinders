@@ -6,6 +6,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import QTimer, Qt
 import pytesseract
+from imutils import rotate_bound, rotate
 from image_processing import apply_binary_threshold, reduce_noise, adjust_contrast, apply_dilation, apply_closing, apply_opening
 
 
@@ -40,8 +41,11 @@ class MainWindow(QMainWindow):
 
         self.selectingRegion = False
 
+        self.slider_rotation.setMinimum(-90)
+        self.slider_rotation.setMaximum(90)
+        self.slider_rotation.valueChanged.connect(self.slider_changed)
 
-        self.slider_contrast.valueChanged.connect(self.slider_changed)
+
         self.slider_binary.valueChanged.connect(self.slider_changed)
         self.slider_noise.valueChanged.connect(self.slider_changed)
         self.slider_dilation.valueChanged.connect(self.slider_changed)
@@ -54,7 +58,9 @@ class MainWindow(QMainWindow):
 
 
     def initialize_sliders(self):
-        self.slider_contrast.setValue(50)
+
+        self.slider_rotation.setValue(0)
+
         self.slider_binary.setValue(50)
         self.slider_noise.setValue(0)
         # может так и не надо делать
@@ -116,7 +122,7 @@ class MainWindow(QMainWindow):
         # словарь предобработки кажждого фрейма
         self.preprocessing_settings = {i: {
             'binary': self.slider_binary.value(),
-            'contrast': self.slider_contrast.value(),
+            'rotation': self.slider_rotation.value(),
             'dilation': self.slider_dilation.value(),
             'closing': self.slider_closing.value(),
             'opening': self.slider_opening.value(),
@@ -133,9 +139,7 @@ class MainWindow(QMainWindow):
 
     def slider_changed(self):
         if self.current_frame_index is not None:
-            # Update the preprocessing settings with the new value from the slider.
             self.save_preprocessing_settings(self.current_frame_index)
-            # Now that settings are updated, reprocess and update the frame display.
             self.update_selected_frame()
 
     def update_frame_display(self):
@@ -151,16 +155,19 @@ class MainWindow(QMainWindow):
         self.selectingRegion = not self.selectingRegion
         if not self.selectingRegion:
             self.select_region_index = None
-        #self.selectingRegion = not self.selectingRegion
 
     def toggle_transformation(self, index):
         self.apply_transformations[index] = not self.apply_transformations[index]
         self.save_preprocessing_settings(index)
 
+    def rotate_image(self, image, angle):
+        return rotate_bound(image, angle)
+        #return rotate(image, angle)
+
     def save_preprocessing_settings(self, index):
         self.preprocessing_settings[index] = {
             'binary': self.slider_binary.value(),
-            'contrast': self.slider_contrast.value(),
+            'rotation': self.slider_rotation.value(),
             'dilation': self.slider_dilation.value(),
             'closing': self.slider_closing.value(),
             'opening': self.slider_opening.value(),
@@ -252,7 +259,8 @@ class MainWindow(QMainWindow):
     def apply_transforms(self, img, index):
         settings = self.preprocessing_settings[index]
         img = apply_binary_threshold(img, settings['binary'])
-        img = adjust_contrast(img, settings['contrast'])
+        if 'rotation' in settings:
+            img = self.rotate_image(img, settings['rotation'])
         img = apply_dilation(img, settings['dilation'])
         img = apply_closing(img, settings['closing'])
         img = apply_opening(img, settings['opening'])

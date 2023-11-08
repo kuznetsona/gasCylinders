@@ -1420,12 +1420,12 @@ border-radius: 5px;</string>
                 </font>
                </property>
                <property name="text">
-                <string>Сontrast</string>
+                <string>Rotate</string>
                </property>
               </widget>
              </item>
              <item row="1" column="0" colspan="2">
-              <widget class="QSlider" name="slider_contrast">
+              <widget class="QSlider" name="slider_rotation">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>

@@ -8,7 +8,8 @@ from PyQt5.QtCore import QTimer, Qt
 import pytesseract
 from imutils import rotate_bound, rotate
 from image_processing import apply_binary_threshold, reduce_noise, adjust_contrast, apply_dilation, apply_closing, apply_opening
-
+import os
+from datetime import datetime
 
 
 class MainWindow(QMainWindow):
@@ -35,7 +36,9 @@ class MainWindow(QMainWindow):
 
         self.apply_transformations = [False] * len(self.videoContainers)
 
-        self.ROI = None
+        #self.pushButton_apply = self.findChild(QPushButton, 'pushButton_apply')
+        self.pushButton_apply.clicked.connect(self.save_frames)
+
 
         self.selectRegionButton.clicked.connect(self.toggle_region_selection)
 
@@ -44,6 +47,7 @@ class MainWindow(QMainWindow):
         self.slider_rotation.setMinimum(-90)
         self.slider_rotation.setMaximum(90)
         self.slider_rotation.valueChanged.connect(self.slider_changed)
+
 
 
         self.slider_binary.valueChanged.connect(self.slider_changed)
@@ -82,6 +86,9 @@ class MainWindow(QMainWindow):
                                 self.videoContainer_14,
                                 self.videoContainer_15,
                                 self.videoContainer_16,
+                                self.videoContainer_17,
+                                self.videoContainer_18,
+                                self.videoContainer_19,
                                 self.videoContainer_20,
                                 self.videoContainer_21,
                                 self.videoContainer_22,
@@ -99,6 +106,9 @@ class MainWindow(QMainWindow):
                              self.text_result_14,
                              self.text_result_15,
                              self.text_result_16,
+                             self.text_result_17,
+                             self.text_result_18,
+                             self.text_result_19,
                              self.text_result_20,
                              self.text_result_21,
                              self.text_result_22,
@@ -107,10 +117,16 @@ class MainWindow(QMainWindow):
 
 
         # соответствие видеоконтейнеров и камер
+        # self.camera_container_map = {
+        #     0: 0, 1: 1, 2: 1, 3: 2,
+        #     4: 0, 5: 0, 6: 1, 7: 1, 8: 2, 9: 2, 10: 2, 11: 0, 12: 0, 13: 0,
+        #     14: 0, 15: 0, 16: 1, 17: 2, 18: 2
+        # }
+
         self.camera_container_map = {
-            0: 0, 1: 1, 2: 1, 3: 2,
-            4: 0, 5: 0, 6: 1, 7: 1, 8: 2, 9: 2, 10: 2,
-            11: 0, 12: 0, 13: 1, 14: 2, 15: 2
+            0: 0, 1: 0, 2: 0, 3: 0,
+            4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0,
+            14: 0, 15: 0, 16: 0, 17: 0, 18: 0
         }
 
         self.frames_ground_truth = {
@@ -128,6 +144,18 @@ class MainWindow(QMainWindow):
             'opening': self.slider_opening.value(),
             'noise': self.slider_noise.value()
         } for i in range(len(self.videoContainers))}
+
+
+    def video_feed(self):
+        # Список камер
+        self.cameras = [cv2.VideoCapture(0)]
+                        #cv2.VideoCapture(1),
+                        #cv2.VideoCapture(2)]
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
+        self.timer.start(600)
+
 
     def select_frame(self, index):
         if self.selectingRegion:
@@ -177,16 +205,6 @@ class MainWindow(QMainWindow):
     def on_radioButton_toggled(self, checked):
         if self.current_frame_index is not None:
             self.apply_transformations[self.current_frame_index] = checked
-
-    def video_feed(self):
-        # Список камер
-        self.cameras = [cv2.VideoCapture(1),
-                        cv2.VideoCapture(2),
-                        cv2.VideoCapture(0)]
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(100)
 
     def calculate_accuracy(self, recognized_text, expected_text):
         matched_chars = sum(1 for a, b in zip(recognized_text, expected_text) if a == b)
@@ -249,22 +267,23 @@ class MainWindow(QMainWindow):
                                Qt.KeepAspectRatio)
         self.videoContainers[index].setPixmap(pixmap)
 
-        if self.radioButton_recognition.isChecked():
-            recognized_text = pytesseract.image_to_string(gray_frame, config='--oem 1 --psm 7')
-        else:
-            recognized_text = ""
+        # if self.radioButton_recognition.isChecked():
+        #     recognized_text = pytesseract.image_to_string(gray_frame, config='--oem 1 --psm 7')
+        # else:
+        #     recognized_text = ""
+        #recognized_text = ""
 
-        self.text_results[index].setText(recognized_text)
+        #self.text_results[index].setText(recognized_text)
 
     def apply_transforms(self, img, index):
         settings = self.preprocessing_settings[index]
-        img = apply_binary_threshold(img, settings['binary'])
+        #img = apply_binary_threshold(img, settings['binary'])
         if 'rotation' in settings:
             img = self.rotate_image(img, settings['rotation'])
-        img = apply_dilation(img, settings['dilation'])
-        img = apply_closing(img, settings['closing'])
-        img = apply_opening(img, settings['opening'])
-        img = reduce_noise(img, settings['noise'])
+        #img = apply_dilation(img, settings['dilation'])
+        #img = apply_closing(img, settings['closing'])
+        #img = apply_opening(img, settings['opening'])
+        #img = reduce_noise(img, settings['noise'])
         return img
 
     #убрать
@@ -292,6 +311,45 @@ class MainWindow(QMainWindow):
             pixmap = QPixmap.fromImage(q_image)
             pixmap = pixmap.scaled(container.width(), container.height(), Qt.KeepAspectRatio)
             container.setPixmap(pixmap)
+
+
+    def timed_save_frames(self):
+        if self.save_frames_counter < 3:  # Check if the function has been called less than 3 times
+            self.save_frames()
+            self.save_frames_counter += 1  # Increment the counter
+        else:
+            self.save_frames_timer.stop()  # Stop the timer after the function has been called 3 times
+            self.save_frames_counter = 0  # Reset the counter
+
+
+
+    def save_frames(self):
+        nameList = ['00_M18X1.5',  '01_CN_ZN',  '02_id000494',  '03_MN',
+                    '10_PW', '11_200', '12_BAR', '13_PH', '14_300',
+                    '15_BAR', '16_0.52', '17_KG', '18_0.36', '19_L',
+                    '20_ISO', '21_7866', '22_D', '23_2022_10', '24_0035']
+
+        folder_name = f"saved_frames_{datetime.now().strftime('%H_%M_%S')}"
+        os.makedirs(folder_name, exist_ok=True)
+
+        for i, container in enumerate(self.videoContainers):
+            pixmap = container.pixmap()
+            if pixmap:
+                frame = self.pixmap_to_cv(pixmap)
+                frame_name = nameList[i]
+                frame_path = os.path.join(folder_name, f"{frame_name}.jpg")
+                cv2.imwrite(frame_path, frame)
+                print(f"Saved: {frame_path}")
+
+    def pixmap_to_cv(self, pixmap):
+        qimage = pixmap.toImage()
+        width = qimage.width()
+        height = qimage.height()
+        ptr = qimage.bits()
+        ptr.setsize(height * width * 4)
+        arr = np.array(ptr).reshape((height, width, 4))
+        return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
+
 
 
     def closeEvent(self, event):

@@ -313,14 +313,6 @@ class MainWindow(QMainWindow):
             container.setPixmap(pixmap)
 
 
-    def timed_save_frames(self):
-        if self.save_frames_counter < 3:  # Check if the function has been called less than 3 times
-            self.save_frames()
-            self.save_frames_counter += 1  # Increment the counter
-        else:
-            self.save_frames_timer.stop()  # Stop the timer after the function has been called 3 times
-            self.save_frames_counter = 0  # Reset the counter
-
 
 
     def save_frames(self):

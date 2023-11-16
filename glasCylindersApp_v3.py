@@ -1,15 +1,18 @@
 import sys
 import cv2
 import numpy as np
+import os
+from datetime import datetime
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QVBoxLayout, QFrame
 from PyQt5.uic import loadUi
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import QTimer, Qt
 import pytesseract
 from imutils import rotate_bound, rotate
-from image_processing import apply_binary_threshold, reduce_noise, adjust_contrast, apply_dilation, apply_closing, apply_opening
-import os
-from datetime import datetime
+from image_processing import (apply_binary_threshold, reduce_noise,
+                              adjust_contrast, apply_dilation,
+                              apply_closing, apply_opening)
+
 
 
 class MainWindow(QMainWindow):
@@ -22,7 +25,10 @@ class MainWindow(QMainWindow):
 
     def initialize_ui(self):
         #self.apply_transformations = False
-        self.radioButton.toggled.connect(self.on_radioButton_toggled)
+
+        #self.radioButton.toggled.connect(self.on_radioButton_toggled)
+
+
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         config = '--oem 1 --psm 11'
         self.initialize_sliders()
@@ -38,9 +44,9 @@ class MainWindow(QMainWindow):
 
         #self.pushButton_apply = self.findChild(QPushButton, 'pushButton_apply')
         self.pushButton_apply.clicked.connect(self.save_frames)
+        self.pushButton_settings.clicked.connect(self.on_pushButton_settings_clicked)
 
-
-        self.selectRegionButton.clicked.connect(self.toggle_region_selection)
+        #self.selectRegionButton.clicked.connect(self.toggle_region_selection)
 
         self.selectingRegion = False
 
@@ -58,6 +64,7 @@ class MainWindow(QMainWindow):
 
 
         for i in range(len(self.videoContainers)):
+            self.videoContainers[i].mouseDoubleClickEvent = lambda event, index=i: self.select_frame_region(index)
             self.videoContainers[i].mousePressEvent = lambda event, index=i: self.select_frame(index)
 
 
@@ -118,22 +125,18 @@ class MainWindow(QMainWindow):
 
         # соответствие видеоконтейнеров и камер
         # self.camera_container_map = {
-        #     0: 0, 1: 1, 2: 1, 3: 2,
-        #     4: 0, 5: 0, 6: 1, 7: 1, 8: 2, 9: 2, 10: 2, 11: 0, 12: 0, 13: 0,
-        #     14: 0, 15: 0, 16: 1, 17: 2, 18: 2
+        #    0: 0, 1: 1, 2: 2, 3: 2,
+        #    4: 0, 5: 0, 6: 1, 7: 1, 8: 1, 9: 1, 10: 2, 11: 2, 12: 2, 13: 2,
+        #    14: 0, 15: 0, 16: 0, 17: 1, 18: 2
         # }
-
+        #
         self.camera_container_map = {
             0: 0, 1: 0, 2: 0, 3: 0,
             4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0,
             14: 0, 15: 0, 16: 0, 17: 0, 18: 0
         }
 
-        self.frames_ground_truth = {
-            0: None, 1: None, 2: None, 3: None,
-            4: None, 5: 'BAR', 6: 1, 7: 'BAR', 8: 2, 9: 2, 10: 2,
-            11: 'ISO', 12: 0, 13: 1, 14: 2, 15: 2
-        }
+
 
         # словарь предобработки кажждого фрейма
         self.preprocessing_settings = {i: {
@@ -148,22 +151,33 @@ class MainWindow(QMainWindow):
 
     def video_feed(self):
         # Список камер
+        # self.cameras = [cv2.VideoCapture(1),
+        #                 cv2.VideoCapture(0),
+        #                 cv2.VideoCapture(2)]
+
         self.cameras = [cv2.VideoCapture(0)]
-                        #cv2.VideoCapture(1),
-                        #cv2.VideoCapture(2)]
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(600)
+        self.timer.start(1000)
 
 
     def select_frame(self, index):
-        if self.selectingRegion:
-            self.select_region_index = index
-            self.select_regions()
-        else:
             self.current_frame_index = index
             self.update_frame_display()
+
+    def select_frame_region(self, index):
+        self.select_region_index = index
+        self.select_regions()
+
+
+    # def select_frame(self, index):
+    #     if self.selectingRegion:
+    #         self.select_region_index = index
+    #         self.select_regions()
+    #     else:
+    #         self.current_frame_index = index
+    #         self.update_frame_display()
 
     def slider_changed(self):
         if self.current_frame_index is not None:
@@ -188,9 +202,10 @@ class MainWindow(QMainWindow):
         self.apply_transformations[index] = not self.apply_transformations[index]
         self.save_preprocessing_settings(index)
 
+
     def rotate_image(self, image, angle):
-        return rotate_bound(image, angle)
-        #return rotate(image, angle)
+        #return rotate_bound(image, angle)
+        return rotate(image, angle)
 
     def save_preprocessing_settings(self, index):
         self.preprocessing_settings[index] = {
@@ -202,9 +217,10 @@ class MainWindow(QMainWindow):
             'noise': self.slider_noise.value()
         }
 
-    def on_radioButton_toggled(self, checked):
+    def on_pushButton_settings_clicked(self):
         if self.current_frame_index is not None:
-            self.apply_transformations[self.current_frame_index] = checked
+            self.apply_transformations[self.current_frame_index] = not self.apply_transformations[
+                self.current_frame_index]
 
     def calculate_accuracy(self, recognized_text, expected_text):
         matched_chars = sum(1 for a, b in zip(recognized_text, expected_text) if a == b)
@@ -219,6 +235,24 @@ class MainWindow(QMainWindow):
                 if ret:
                     frame = self.process_frame(frame, i)
                     self.display_frame(frame, i)
+                else:
+                    print("Camera is disconnected! Attempting to reconnect.")
+                    self.reconnect_camera(camera_index)
+
+
+    def reconnect_camera(self, camera_index):
+        self.cameras[camera_index].release()
+        retry_count = 0
+        while retry_count < 3:
+            print(f"Reconnecting to camera {camera_index} (attempt {retry_count + 1})")
+            self.cameras[camera_index] = cv2.VideoCapture(camera_index)
+            if self.cameras[camera_index].isOpened():
+                print(f"Reconnected to camera {camera_index}")
+                return
+            else:
+                time.sleep(2)
+                retry_count += 1
+        print(f"Failed to reconnect to camera {camera_index}")
 
     def update_selected_frame(self):
         camera_index = self.camera_container_map[self.current_frame_index]
@@ -230,7 +264,7 @@ class MainWindow(QMainWindow):
                 self.display_frame(frame, self.current_frame_index)
 
     def select_regions(self):
-        if self.selectingRegion and self.select_region_index is not None:
+        if self.select_region_index is not None:
             camera_index = self.camera_container_map[self.select_region_index]
             camera = self.cameras[camera_index]
             if camera.isOpened():
@@ -244,7 +278,7 @@ class MainWindow(QMainWindow):
                     else:
                         self.ROIs[self.select_region_index] = None
 
-                    self.selectingRegion = False
+                    #self.selectingRegion = False
                     self.select_region_index = None
 
 
@@ -277,13 +311,13 @@ class MainWindow(QMainWindow):
 
     def apply_transforms(self, img, index):
         settings = self.preprocessing_settings[index]
-        #img = apply_binary_threshold(img, settings['binary'])
+        img = apply_binary_threshold(img, settings['binary'])
         if 'rotation' in settings:
             img = self.rotate_image(img, settings['rotation'])
-        #img = apply_dilation(img, settings['dilation'])
-        #img = apply_closing(img, settings['closing'])
-        #img = apply_opening(img, settings['opening'])
-        #img = reduce_noise(img, settings['noise'])
+        img = apply_dilation(img, settings['dilation'])
+        img = apply_closing(img, settings['closing'])
+        img = apply_opening(img, settings['opening'])
+        img = reduce_noise(img, settings['noise'])
         return img
 
     #убрать
@@ -300,7 +334,7 @@ class MainWindow(QMainWindow):
             else:
                 continue
 
-            expected_text = "мяу"
+            expected_text = ""
             accuracy = self.calculate_accuracy(recognized_text, expected_text)
             accuracy_percentage = round(accuracy * 100, 2)
             self.text_result.setText(recognized_text)
@@ -311,8 +345,6 @@ class MainWindow(QMainWindow):
             pixmap = QPixmap.fromImage(q_image)
             pixmap = pixmap.scaled(container.width(), container.height(), Qt.KeepAspectRatio)
             container.setPixmap(pixmap)
-
-
 
 
     def save_frames(self):

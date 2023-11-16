@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
     def video_feed(self):
         # Список камер
-        self.cameras = [cv2.VideoCapture(3), cv2.VideoCapture(2), cv2.VideoCapture(0)]
+        self.cameras = [cv2.VideoCapture(4), cv2.VideoCapture(2), cv2.VideoCapture(0)]
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)

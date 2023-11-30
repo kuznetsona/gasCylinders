@@ -12,12 +12,26 @@ from PyQt5.QtWidgets import QDialog
 
 
 class SelectRegionDialog(QDialog):
-    def __init__(self, pixmap):
-        super().__init__()
-        uic.loadUi('../ui_files/selectRegionWidget.ui', self)
-        scaled_pixmap = pixmap.scaled(400, 300)
-        self.label.setPixmap(scaled_pixmap)
+    def __init__(self, pixmap, parent=None):
+        super().__init__(parent)
+        uic.loadUi('ui_files/selectRegionWidget.ui', self)
+        print("Original Pixmap Size:", pixmap.size())
 
+        ixmap_original_size = pixmap.size()
+        self.pixmap_original_width = pixmap.width()
+        self.pixmap_original_height = pixmap.height()
+        print(f"height '{self.pixmap_original_height}' width '{self.pixmap_original_width}' ")
+
+        self.scaled_pixmap = pixmap.scaled(400, 300)
+        # self.scaled_pixmap = pixmap.scaled(pixmap.size())
+        print("ScaledPixmap Size:", self.scaled_pixmap.size())
+
+        self.scaled_pixmap_width = self.scaled_pixmap.width()
+        self.scaled_pixmap_height = self.scaled_pixmap.height()
+        print(f"height '{self.scaled_pixmap_height}' width '{self.scaled_pixmap_width}' ")
+
+        self.label.setPixmap(self.scaled_pixmap)
+        self.selected_region = None
         self.start_point = None
         self.end_point = None
         self.is_selecting = False
@@ -40,32 +54,76 @@ class SelectRegionDialog(QDialog):
             self.update()
 
     def paintEvent(self, event):
-        painter = QPainter(self)
+        super().paintEvent(event)
+        temp_pixmap = self.scaled_pixmap.copy()
+        painter = QPainter(temp_pixmap)
         pen = QPen(Qt.red, 2, Qt.SolidLine)
         painter.setPen(pen)
         if self.start_point and self.end_point:
             rect = QRect(self.start_point, self.end_point)
             painter.drawRect(rect)
         painter.end()
+        self.label.setPixmap(temp_pixmap)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            rect = QRect(self.start_point, self.end_point)
-            print(f"Selected region: {rect}")
+            x1, y1 = self.start_point.x(), self.start_point.y()
+            x2, y2 = self.end_point.x(), self.end_point.y()
+            x2 = min(x2, self.scaled_pixmap_width)
+            y2 = min(y2, self.scaled_pixmap_height)
+            x = min(x1, x2)
+            y = min(y1, y2)
+            width = abs(x1 - x2)
+            height = abs(y1 - y2)
+            x_scale = 640 / self.scaled_pixmap_width
+            y_scale = 480 / self.scaled_pixmap_height
+            orig_x = round(x * x_scale)
+            orig_y = round(y * y_scale)
+            orig_width = round(width * x_scale)
+            orig_height = round(height * y_scale)
+            self.selected_region = QRect(orig_x, orig_y, orig_width, orig_height)
             self.close()
+
+    def get_selected_region(self):
+        return self.selected_region
+
+
+class Effect:
+    def __init__(self):
+        pass
+
+    def apply(self, image: QImage) -> QImage:
+        raise Exception("Should be implemented")
+
+
+class CropEffect(Effect):
+    def __init__(self, x1, y1, x2, y2):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+
+    def apply(self, image: QImage) -> QImage:
+        return
+
+
+class ContainerEffects:
+    def __init__(self, crop_effect: CropEffect):
+        self.crop_effect = crop_effect
 
 
 class CameraWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        uic.loadUi('../ui_files/glasCylinders_v5.ui', self)
+        uic.loadUi('ui_files/glasCylinders_v5.ui', self)
 
         self.camera_dict = {
             "Camera 1": r"@device:pnp:\\?\usb#vid_32e6&pid_9005&mi_00#6&19df1aaf&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global",
             "Camera 2": r"@device:pnp:\\?\usb#vid_32e6&pid_9005&mi_00#6&7256a0a&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global",
             "Camera 3": r"@device:pnp:\\?\usb#vid_1902&pid_8301&mi_00#6&2111536c&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global",
-            "webcam": r"@device:pnp:\\?\usb#vid_0bda&pid_58d2&mi_00#6&26b38be2&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global"
+            "webcam": r"@device:pnp:\\?\usb#vid_0bda&pid_58d2&mi_00#6&26b38be2&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global",
+            "red cam": r"@device:pnp:\\?\usb#vid_0bda&pid_58b0&mi_00#6&25249c4a&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\global"
 
         }
         # с хабом
@@ -83,29 +141,47 @@ class CameraWindow(QMainWindow):
             self.videoContainer_10, self.videoContainer_11, self.videoContainer_12,
             self.videoContainer_20
         ]
+        self.effects_1 = [
+            ContainerEffects([CropEffect(0, 0, 1e5, 1e5)]) for vc in self.videoContainers_1
+        ]
+
         self.videoContainers_2 = [
             self.videoContainer_01,
             self.videoContainer_13, self.videoContainer_14, self.videoContainer_15,
             self.videoContainer_21, self.videoContainer_22
         ]
-
+        self.effects_2 = [
+            ContainerEffects([CropEffect(0, 0, 1e5, 1e5)]) for vc in self.videoContainers_2
+        ]
         self.videoContainers_3 = [
             self.videoContainer_02, self.videoContainer_03,
             self.videoContainer_16, self.videoContainer_17, self.videoContainer_18, self.videoContainer_19,
             self.videoContainer_23, self.videoContainer_24
+        ]
+        self.effects_3 = [
+            ContainerEffects([CropEffect(0, 0, 1e5, 1e5)]) for vc in self.videoContainers_3
         ]
 
         self.camera_container_map = {
             0: "webcam", 1: "Camera 1", 2: "Camera 2", 3: "Camera 3"
         }
         self.cameras = {}
-        self.camera_name_list = ["Camera 1", "Camera 2", "Camera 3"]
+        self.camera_name_list = ["red cam", "webcam", "Camera 3"]
         self.videoContainers_list = [self.videoContainers_1, self.videoContainers_2, self.videoContainers_3]
+        # self.all_containers_effects = [self.effects_1, self.effects_2, self.effects_3]
+        #
+        # x, y
+        # vc = self.videoContainers_list[x][y]
+        # effects = self.all_containers_effects[x][y]
+        # effects.crop_effect=CropEffect(x1=,)
+
         self.camera_connected = {}
 
         self.camera_states = {}
         self.message_boxes = {}
         self.search_timers = {}
+
+        self.ROIs = {}
 
         self.initialize_and_start_cameras()
 
@@ -113,17 +189,29 @@ class CameraWindow(QMainWindow):
 
         for videoContainers in self.videoContainers_list:
             for i, container in enumerate(videoContainers):
-                container.mouseDoubleClickEvent = lambda event, index=i, vc=videoContainers: self.select_frame_region(
-                    index, vc)
+                container.mouseDoubleClickEvent = lambda event, container=container: self.select_frame_region(
+                    container)
+            # for i, container in enumerate(videoContainers):
+            #     container.mouseDoubleClickEvent = lambda event, index=i, vc=videoContainers: self.select_frame_region(
+            #         index, vc)
 
-    def select_frame_region(self, index, videoContainers):
-        print("Double clicked on video container at index:", index, "in", videoContainers)
-
-        container = videoContainers[index]
+    def select_frame_region(self, container):
+        #container = videoContainers[index]
         pixmap = container.pixmap()
         if pixmap:
             dialog = SelectRegionDialog(pixmap)
             dialog.exec_()
+
+            selected_region = dialog.get_selected_region()
+            if selected_region:
+                self.set_ROI_for_container(container, selected_region)
+            print("select_frame_region :", selected_region)
+
+    # def get_something(self, index: index) ->:
+
+    def set_ROI_for_container(self, container, roi):
+        self.ROIs[container] = roi
+        print("self.ROIs[index] :", self.ROIs[container])
 
     def initialize_and_start_cameras(self):
         for i, camera_name in enumerate(self.camera_name_list):
@@ -143,7 +231,7 @@ class CameraWindow(QMainWindow):
 
         timer = QTimer(self)
         timer.timeout.connect(capture.capture)
-        timer.start(0.1 * 1e3)
+        timer.start(100)
 
         camera.start()
 
@@ -212,9 +300,19 @@ class CameraWindow(QMainWindow):
 
     def display_image(self, id, image, video_containers):
         image = image.convertToFormat(QImage.Format_Grayscale8)
-        pixmap = QPixmap.fromImage(image)
-        for container in video_containers:
-            scaled_pixmap = pixmap.scaledToWidth(container.width())
+
+        for i, container in enumerate(video_containers):
+            pixmap = QPixmap.fromImage(image)
+            scaled_pixmap = pixmap.scaledToWidth(container.width())  # Масштабируем по умолчанию
+
+            if container in self.ROIs:
+                roi = self.ROIs[container]
+                #if roi_containers is video_containers:
+                x, y, width, height = roi.getRect()
+                cropped_pixmap = pixmap.copy(x, y, width, height)
+                scaled_pixmap = cropped_pixmap.scaledToWidth(
+                    container.width())
+
             container.setPixmap(scaled_pixmap)
 
     # def display_frame(self, gray_frame, index):
@@ -281,7 +379,6 @@ class CameraWindow(QMainWindow):
         super(CameraWindow, self).closeEvent(event)
 
 
-# Запуск приложения
 app = QApplication(sys.argv)
 window = CameraWindow()
 window.show()
